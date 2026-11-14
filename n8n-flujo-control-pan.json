@@ -1,0 +1,84 @@
+{
+  "name": "Control de pan - enviar PDF al dueño",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "control-pan",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "4f7e2a10-1c3b-4d55-9a61-0b2f7c3e9a01",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "b6f0c7a2-6d1e-4e2b-8f3c-5a7d9e1f2b04"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.correo }}",
+        "subject": "=Control de pan – {{ $json.body.local }} – {{ $json.body.fechas }}",
+        "emailType": "text",
+        "message": "=Hola,\n\nSe adjunta el control de pan de {{ $json.body.local }} ({{ $json.body.mes }}), fechas {{ $json.body.fechas }}.\nTotal de la semana: {{ $json.body.total }}.\n\nEnviado desde la app Control de pan.",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9a3d5b21-7e4f-4c10-8b22-1d4e6f8a0b02",
+      "name": "Gmail - enviar PDF",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\": true}",
+        "options": {}
+      },
+      "id": "c2b8e4f3-0a6d-4e7b-9c33-2e5f7a9b1c03",
+      "name": "Responder a la app",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [520, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Gmail - enviar PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - enviar PDF": {
+      "main": [
+        [
+          {
+            "node": "Responder a la app",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f4ef">
+<title>Control de pan</title>
+<style>
+  :root {
+    --fondo: #f6f4ef;
+    --papel: #ffffff;
+    --tinta: #1f1d1a;
+    --tenue: #6b665e;
+    --linea: #d9d4c9;
+    --acento: #8a4b14;
+    --acento-suave: #f3e6d6;
+    --ok: #2f6b2f;
+    --error: #a12a1f;
+    --radio: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--tinta);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    padding-bottom: 96px;
+  }
+  header.barra {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--fondo);
+    border-bottom: 1px solid var(--linea);
+    padding: 10px 16px 0;
+  }
+  .titulo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .titulo h1 { font-size: 18px; margin: 0; letter-spacing: .02em; white-space: nowrap; }
+  .titulo .sub { color: var(--tenue); font-size: 14px; text-align: right; }
+  nav.pestanas { display: flex; gap: 4px; margin-top: 8px; }
+  nav.pestanas button {
+    flex: 1; border: 0; background: none; padding: 10px 4px 12px;
+    font: inherit; font-size: 15px; color: var(--tenue);
+    border-bottom: 3px solid transparent; cursor: pointer;
+  }
+  nav.pestanas button[aria-selected="true"] { color: var(--tinta); font-weight: 600; border-bottom-color: var(--acento); }
+  main { max-width: 640px; margin: 0 auto; padding: 12px 16px; }
+  section[hidden] { display: none; }
+  h2 { font-size: 17px; margin: 18px 0 8px; }
+  .dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .dias button {
+    border: 1px solid var(--linea); background: var(--papel); border-radius: 8px;
+    padding: 10px 0; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    position: relative; min-height: 48px;
+  }
+  .dias button[aria-pressed="true"] { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+  .dias button .punto { display: block; width: 6px; height: 6px; border-radius: 50%; margin: 4px auto 0; background: transparent; }
+  .dias button.con-datos .punto { background: var(--acento); }
+  .dias button[aria-pressed="true"].con-datos .punto { background: #fff; }
+  .dia-titulo { display: flex; justify-content: space-between; align-items: baseline; margin: 16px 0 4px; }
+  .dia-titulo h2 { margin: 0; }
+  .dia-titulo span { color: var(--tenue); font-size: 14px; }
+  .tarjeta {
+    background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio);
+    padding: 14px; margin: 12px 0;
+  }
+  .tarjeta h3 { margin: 0 0 10px; font-size: 16px; display: flex; justify-content: space-between; gap: 8px; }
+  .tarjeta h3 .sin-nombre { color: var(--tenue); font-weight: 400; }
+  label.campo { display: block; font-size: 13px; color: var(--tenue); margin-bottom: 8px; }
+  label.campo > input { margin-top: 4px; }
+  input {
+    width: 100%; font: inherit; font-size: 17px; color: var(--tinta);
+    padding: 10px 10px; border: 1px solid var(--linea); border-radius: 8px; background: #fff;
+    min-height: 46px;
+  }
+  input:focus { outline: 2px solid var(--acento); outline-offset: 0; border-color: var(--acento); }
+  .grupo { margin: 10px 0 4px; }
+  .grupo .etq { font-size: 13px; color: var(--tenue); margin-bottom: 4px; }
+  .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .tres input { text-align: center; }
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .calculo {
+    margin-top: 10px; border-top: 1px dashed var(--linea); padding-top: 10px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 13px; color: var(--tenue);
+  }
+  .calculo b { display: block; font-size: 16px; color: var(--tinta); font-variant-numeric: tabular-nums; }
+  .calculo .apagar b { color: var(--acento); }
+  .aviso { color: var(--error); font-size: 13px; margin-top: 6px; }
+  .total-dia {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
+    background: var(--tinta); color: #fff;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    display: flex; justify-content: space-between; align-items: center; font-size: 15px;
+  }
+  .total-dia b { font-size: 21px; font-variant-numeric: tabular-nums; }
+  .total-dia[hidden] { display: none; }
+  table.resumen { width: 100%; border-collapse: collapse; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); overflow: hidden; }
+  table.resumen td, table.resumen th { padding: 12px; border-bottom: 1px solid var(--linea); text-align: left; font-variant-numeric: tabular-nums; }
+  table.resumen td:last-child, table.resumen th:last-child { text-align: right; }
+  table.resumen tr.fila-dia { cursor: pointer; }
+  table.resumen td.vacio { color: var(--tenue); }
+  table.resumen tfoot td { font-weight: 700; font-size: 17px; border-bottom: 0; background: var(--acento-suave); }
+  .btn {
+    display: block; width: 100%; border: 0; border-radius: var(--radio);
+    font: inherit; font-size: 17px; font-weight: 600; padding: 15px 16px; margin: 10px 0;
+    cursor: pointer; min-height: 52px;
+  }
+  .btn.principal { background: var(--acento); color: #fff; }
+  .btn.secundario { background: var(--papel); color: var(--tinta); border: 1px solid var(--tinta); }
+  .btn.peligro { background: var(--papel); color: var(--error); border: 1px solid var(--error); }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .estado { padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 15px; }
+  .estado.ok { background: #e6f0e3; color: var(--ok); }
+  .estado.error { background: #f6e3e1; color: var(--error); }
+  .estado.info { background: var(--acento-suave); color: var(--tinta); }
+  .nota { color: var(--tenue); font-size: 14px; }
+  .pregunta { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 14px; margin-top: 14px; }
+  .pregunta p { margin: 0 0 4px; font-weight: 600; }
+  .prov-config { border-top: 1px solid var(--linea); padding-top: 12px; margin-top: 12px; }
+  .prov-config:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+</style>
+</head>
+<body>
+<header class="barra">
+  <div class="titulo">
+    <h1>Control de pan</h1>
+    <div class="sub" id="cabecera-local"></div>
+  </div>
+  <nav class="pestanas" role="tablist">
+    <button role="tab" data-pestana="llenar" aria-selected="true">Llenar</button>
+    <button role="tab" data-pestana="resumen" aria-selected="false">Semana</button>
+    <button role="tab" data-pestana="config" aria-selected="false">Configuración</button>
+  </nav>
+</header>
+
+<main>
+  <section id="vista-llenar">
+    <div class="dias" id="dias" aria-label="Día de la semana"></div>
+    <div class="dia-titulo"><h2 id="dia-nombre"></h2><span id="dia-fecha"></span></div>
+    <div id="filas"></div>
+  </section>
+
+  <section id="vista-resumen" hidden>
+    <h2>Resumen de la semana</h2>
+    <p class="nota" id="rango"></p>
+    <table class="resumen">
+      <thead><tr><th>Día</th><th>Total del día</th></tr></thead>
+      <tbody id="resumen-dias"></tbody>
+      <tfoot><tr><td>Total semana</td><td id="total-semana">$0</td></tr></tfoot>
+    </table>
+    <button class="btn principal" id="btn-terminar">Terminar semana y enviar al dueño</button>
+    <div id="resultado"></div>
+  </section>
+
+  <section id="vista-config" hidden>
+    <h2>Datos del local</h2>
+    <div class="tarjeta">
+      <label class="campo">Nombre del local<input id="cfg-local" autocomplete="off"></label>
+      <label class="campo">Mes<input id="cfg-mes" autocomplete="off" placeholder="NOVIEMBRE"></label>
+      <label class="campo">Correo del dueño<input id="cfg-correo" type="email" inputmode="email" autocomplete="off" placeholder="dueno@correo.cl"></label>
+    </div>
+    <h2>Proveedores y precio por kilo</h2>
+    <div class="tarjeta" id="cfg-proveedores"></div>
+    <p class="nota">Todo se guarda solo en este celular. El precio por kilo se puede cambiar también en cada día.</p>
+    <h2>Semana actual</h2>
+    <button class="btn peligro" id="btn-vaciar">Vaciar los datos de la semana</button>
+    <p class="nota">Borra los kilos anotados. La configuración se mantiene.</p>
+  </section>
+</main>
+
+<div class="total-dia" id="barra-total"><span id="barra-total-etq">Total del día</span><b id="barra-total-valor">$0</b></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="calculos.js"></script>
+<script src="pdf.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
